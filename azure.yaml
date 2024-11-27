@@ -1,0 +1,29 @@
+# yaml-language-server: $schema=https://azuresdkreleasepreview.blob.core.windows.net/azd/schema/azure.yaml.json
+
+name: pubsub-dapr-csharp-servicebus
+metadata:
+  template: pubsub-dapr-csharp-servicebus@0.0.1-beta
+services:
+  solver:
+    project: job-solver
+    language: csharp
+    host: containerapp
+    module: app/solver
+  iot-manager:
+    project: iot-manager
+    language: csharp
+    host: containerapp
+    module: app/iotmanager
+
+hooks:
+  postprovision:
+    windows: # Run referenced script that uses environment variables (script shown below)
+      shell: pwsh
+      run: ./scripts/createLocalFiles.ps1
+      interactive: false
+      continueOnError: false
+    posix:
+      shell: sh
+      run: ./scripts/createLocalFiles.sh
+      interactive: false
+      continueOnError: false

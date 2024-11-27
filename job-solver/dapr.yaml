@@ -1,0 +1,8 @@
+version: 1
+common:
+  resourcesPath: ./components/
+apps:
+  - appDirPath: .
+    appID: jobs
+    appPort: 7001
+    command: ["dotnet", "run"]

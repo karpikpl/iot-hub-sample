@@ -1,0 +1,13 @@
+POST http://localhost:7001/jobs
+Content-Type: application/json
+
+{
+    "name": "test",
+    "correlationId": "test",
+    "steps": [
+        "step1",
+        "step2",
+        "step3",
+        "step4"
+    ]
+}

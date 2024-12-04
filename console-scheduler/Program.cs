@@ -18,10 +18,10 @@ var configuration = builder.Build();
 
 // Configuration
 // Replace with your Service Bus namespace and queue or topic name
-string fullyQualifiedNamespace = configuration["ServiceBus:Namespace"] ?? throw new ArgumentNullException("ServiceBus:Namespace");
-string queueOrTopicName = configuration["ServiceBus:TopicName"] ?? throw new ArgumentNullException("ServiceBus:TopicName");
-string iotManagerUrl = configuration["IoT:ManagerUrl"] ?? throw new ArgumentNullException("IoT:ManagerUrl");
-string apiKey = configuration["ApiKey"] ?? throw new ArgumentNullException("ApiKey");
+string serviceBusConnectionString = configuration["ServiceBus:Namespace"] ?? configuration["ServiceBus:ConnectionString"] ?? throw new InvalidOperationException("ServiceBus:Namespace and ServiceBus:ConnectionString are missing. Provide either of them.");
+string queueOrTopicName = configuration["ServiceBus:TopicName"] ?? throw new InvalidOperationException("ServiceBus:TopicName setting is missing.");
+string iotManagerUrl = configuration["IoT:ManagerUrl"] ?? throw new InvalidOperationException("IoT:ManagerUrl setting is missing.");
+string apiKey = configuration["ApiKey"] ?? throw new InvalidOperationException("ApiKey setting is missing.");
 
 string jobId = $"job-{Environment.UserName}-{DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss", CultureInfo.InvariantCulture)}";
 string deviceId = $"device-scheduler::{jobId}";
@@ -38,8 +38,10 @@ var response = await httpClient.GetFromJsonAsync<NegotiateResponse>(iotNegotiate
 // register solver too
 await httpClient.GetFromJsonAsync<NegotiateResponse>(iotNegotiateSolverUri);
 
-// Create a ServiceBusClient using DefaultAzureCredential
-var client = new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
+// Create a ServiceBusClient using DefaultAzureCredential or connection string
+var client = serviceBusConnectionString.Contains("SharedAccessKey")
+    ? new ServiceBusClient(serviceBusConnectionString)
+    : new ServiceBusClient(serviceBusConnectionString, new DefaultAzureCredential());
 
 // Create a IoT device client
 using var deviceClient = DeviceClient.CreateFromConnectionString(response!.Url, TransportType.Amqp);

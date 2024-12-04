@@ -32,8 +32,8 @@ namespace console_device
             builder.AddCommandLine(args);
 
             var configuration = builder.Build();
-            string iotManagerUrl = configuration["IoT:ManagerUrl"] ?? throw new ArgumentNullException("IoT:ManagerUrl");
-            string apiKey = configuration["ApiKey"] ?? throw new ArgumentNullException("ApiKey");
+            string iotManagerUrl = configuration["IoT:ManagerUrl"] ?? throw new InvalidOperationException("IoT:ManagerUrl setting is missing.");
+            string apiKey = configuration["ApiKey"] ?? throw new InvalidOperationException("ApiKey setting is missing.");
 
             // using this device ID will cause the server to send messages back to this device
             string jobId = "console-test";

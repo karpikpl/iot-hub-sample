@@ -83,6 +83,22 @@ This command will prompt you for the following information:
 
 > NOTE: This may take a while to complete as it executes three commands: `azd package` (packages a deployable copy of your application),`azd provision` (provisions Azure resources), and `azd deploy` (deploys application code). You will see a progress indicator as it packages, provisions and deploys your application.
 
+#### Azure Role Assignments
+
+Deployment will attempt to create role assignments for the resources, as well as the indetity executing the deployment. In scenarios where `Subscription Owner` role is not available, following role assignments have to be added manually by the admin:
+
+* `Azure Service Bus Data Sender`
+* `Azure Service Bus Data Receiver`
+* `Azure Container Registry Pull`
+* `IoT Hub Data Contributor`
+* `IoT Hub Registry Contributor`
+
+Optional access for user running the app locally:
+* `Azure Service Bus Data Sender`
+* `Azure Service Bus Data Receiver`
+* `IoT Hub Data Contributor`
+* `IoT Hub Registry Contributor`
+
 #### Run the console scheduler
 
 Once the infrastructure is deployed, `appsettings.local.json` files will be created for all projects.

@@ -98,9 +98,6 @@ app.MapGet("/deregister/{id}", async (
 });
 
 
-// Abuse protection: https://learn.microsoft.com/en-us/azure/azure-web-pubsub/howto-troubleshoot-common-issues#abuseprotectionresponsemissingallowedorigin
-// From cloud events: https://github.com/cloudevents/spec/blob/v1.0/http-webhook.md#4-abuse-protection
-
 IWebHostEnvironment env = app.Environment;
 
 if (env.IsDevelopment())

@@ -170,8 +170,8 @@ module iotManagerApp './app/iotmanager.bicep' = {
   }
 }
 
-module accessToWebPubSub './app/accessToIotHub.bicep' = {
-  name: 'access-to-webpubsub'
+module accessToIoTHub './app/accessToIotHub.bicep' = {
+  name: 'access-to-iot'
   scope: rg
   params: {
     managedIdentityName: serviceBusAccess.outputs.managedIdentityName
@@ -199,4 +199,4 @@ output SERVICE_IOT_MANAGER_IMAGE_NAME string = iotManagerApp.outputs.SERVICE_IOT
 output SERVICE_IOT_MANAGER_NAME string = iotManagerApp.outputs.SERVICE_IOT_MANAGER_NAME
 output SERVICE_IOT_MANAGER_URI string = iotManagerApp.outputs.SERVICE_IOT_MANAGER_URI
 output API_KEY string = apiKey
-output ROLE_ASSIGNMENTS_TO_ADD string = '${serviceBusAccess.outputs.missingRoleAssignments} \n${accessToWebPubSub.outputs.missingRoleAssignments} \n${solverApp.outputs.missingRoleAssignments}'
+output ROLE_ASSIGNMENTS_TO_ADD string = '${serviceBusAccess.outputs.missingRoleAssignments} \n${accessToIoTHub.outputs.missingRoleAssignments} \n${solverApp.outputs.missingRoleAssignments}'

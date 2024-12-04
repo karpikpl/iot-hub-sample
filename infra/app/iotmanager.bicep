@@ -30,7 +30,7 @@ resource userIdentity 'Microsoft.ManagedIdentity/userAssignedIdentities@2023-01-
   name: managedIdentityName
 }
 
-module webPubSubServer '../core/host/container-app-upsert.bicep' = {
+module iotManager '../core/host/container-app-upsert.bicep' = {
   name: '${serviceName}-container-app-module'
   params: {
     name: name
@@ -77,6 +77,6 @@ module webPubSubServer '../core/host/container-app-upsert.bicep' = {
 }
 
 
-output SERVICE_IOT_MANAGER_IMAGE_NAME string = webPubSubServer.outputs.imageName
-output SERVICE_IOT_MANAGER_NAME string = webPubSubServer.outputs.name
-output SERVICE_IOT_MANAGER_URI string = webPubSubServer.outputs.uri
+output SERVICE_IOT_MANAGER_IMAGE_NAME string = iotManager.outputs.imageName
+output SERVICE_IOT_MANAGER_NAME string = iotManager.outputs.name
+output SERVICE_IOT_MANAGER_URI string = iotManager.outputs.uri

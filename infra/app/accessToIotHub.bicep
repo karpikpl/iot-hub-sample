@@ -21,7 +21,7 @@ resource ioTHub 'Microsoft.Devices/IotHubs@2023-06-30' existing = {
 }
 
 // Grant permissions to the current user to specific role to iot hub
-resource roleAssignmentDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+resource roleAssignmentDataContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (doRoleAssignments) {
   name: guid(ioTHub.id, iotHubDataContributor, managedIdentityName)
   scope: ioTHub
   properties: {
@@ -35,7 +35,7 @@ resource roleAssignmentDataContributor 'Microsoft.Authorization/roleAssignments@
 }
 
 // Grant permissions to the current user to specific role to iot hub
-resource roleAssignmentRegistryContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = {
+resource roleAssignmentRegistryContributor 'Microsoft.Authorization/roleAssignments@2020-04-01-preview' = if (doRoleAssignments) {
   name: guid(ioTHub.id, iotHubRegistryContributor, managedIdentityName)
   scope: ioTHub
   properties: {

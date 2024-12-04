@@ -4,12 +4,12 @@ param tags object = {}
 param containerAppsEnvironmentName string
 param containerRegistryName string
 param name string = ''
-param serviceName string = 'wps-server'
+param serviceName string = 'iot-manager'
 param managedIdentityName string = ''
 param exists bool = false
 
-@description('Iot Hub Name')
-param iothubName string
+@description('Iot Hub Host Name e.g. <name>.azure-devices.net')
+param iothubHostName string
 
 @description('Service Bus Namespace')
 param serviceBusNamespace string
@@ -35,7 +35,7 @@ module webPubSubServer '../core/host/container-app-upsert.bicep' = {
   params: {
     name: name
     location: location
-    tags: union(tags, { 'azd-service-name': 'wps-server' })
+    tags: union(tags, { 'azd-service-name': 'iot-manager' })
     containerAppsEnvironmentName: containerAppsEnvironmentName
     containerRegistryName: containerRegistryName
     containerCpuCoreCount: '0.5'
@@ -48,8 +48,8 @@ module webPubSubServer '../core/host/container-app-upsert.bicep' = {
     targetPort: 7002
     env: [
       {
-        name: 'IoT__HubName'
-        value: iothubName
+        name: 'IoT__HubHostName'
+        value: iothubHostName
       }
       {
         name: 'ServiceBus__DeviceMessagesQueueName'

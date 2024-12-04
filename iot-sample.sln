@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "console-publisher", "console-publisher\console-publisher.csproj", "{19735869-996A-4BBD-A0EA-F34FED599DB5}"
-EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "console-subscriber", "console-subscriber\console-subscriber.csproj", "{5311DCA1-1C0E-47E0-A32D-FC75A8E41C13}"
-EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "console-scheduler", "console-scheduler\console-scheduler.csproj", "{BF95E9D4-C8C7-44EF-A9DF-2DCEBC98A58A}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "job-solver", "job-solver\job-solver.csproj", "{7DC0157E-4289-47F8-9848-E9733D3D276E}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "iot-manager", "iot-manager\iot-manager.csproj", "{FB643B70-69EE-4A45-A8B3-137D5373DB23}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "console-device", "console-device\console-device.csproj", "{BE0B393A-CA6F-4D4C-8B6B-5CE7C4056B59}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "console-cloud", "console-cloud\console-cloud.csproj", "{B02E7644-056B-4A53-831D-AFF39E197AD5}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -22,14 +22,6 @@ Global
 		HideSolutionNode = FALSE
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{19735869-996A-4BBD-A0EA-F34FED599DB5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{19735869-996A-4BBD-A0EA-F34FED599DB5}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{19735869-996A-4BBD-A0EA-F34FED599DB5}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{19735869-996A-4BBD-A0EA-F34FED599DB5}.Release|Any CPU.Build.0 = Release|Any CPU
-		{5311DCA1-1C0E-47E0-A32D-FC75A8E41C13}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{5311DCA1-1C0E-47E0-A32D-FC75A8E41C13}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{5311DCA1-1C0E-47E0-A32D-FC75A8E41C13}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{5311DCA1-1C0E-47E0-A32D-FC75A8E41C13}.Release|Any CPU.Build.0 = Release|Any CPU
 		{BF95E9D4-C8C7-44EF-A9DF-2DCEBC98A58A}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{BF95E9D4-C8C7-44EF-A9DF-2DCEBC98A58A}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{BF95E9D4-C8C7-44EF-A9DF-2DCEBC98A58A}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -42,5 +34,13 @@ Global
 		{FB643B70-69EE-4A45-A8B3-137D5373DB23}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{FB643B70-69EE-4A45-A8B3-137D5373DB23}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{FB643B70-69EE-4A45-A8B3-137D5373DB23}.Release|Any CPU.Build.0 = Release|Any CPU
+		{BE0B393A-CA6F-4D4C-8B6B-5CE7C4056B59}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{BE0B393A-CA6F-4D4C-8B6B-5CE7C4056B59}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{BE0B393A-CA6F-4D4C-8B6B-5CE7C4056B59}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{BE0B393A-CA6F-4D4C-8B6B-5CE7C4056B59}.Release|Any CPU.Build.0 = Release|Any CPU
+		{B02E7644-056B-4A53-831D-AFF39E197AD5}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{B02E7644-056B-4A53-831D-AFF39E197AD5}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{B02E7644-056B-4A53-831D-AFF39E197AD5}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{B02E7644-056B-4A53-831D-AFF39E197AD5}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 EndGlobal

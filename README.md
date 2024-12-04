@@ -8,20 +8,24 @@ products:
 - azure
 - azure-container-apps
 - azure-service-bus
-- azure-web-pub-sub
+- azure-iot-hub
 urlFragment: pubsub-dapr-csharp-servicebus
-name: Microservice communication using pubsub (async)(C#) and web pub sub (websockets)
-description: Create a subscriber microservice with C# to demonstrate how Dapr enables a subcribe pattern. Console app will publish a message on service bus topic, subscriber microservice will pick it up and execute the job. Both services talk to each other using websockets via azure web pub sub service.
+name: Microservice communication using pubsub (async)(C#) and iot hub (AMQP)
+description: Create a subscriber microservice with C# to demonstrate how Dapr enables a subcribe pattern. Console app will publish a message on service bus topic, subscriber microservice will pick it up and execute the job. Both services talk to each other using AMQP via Azure IoT Hub.
 ---
 <!-- YAML front-matter schema: https://review.learn.microsoft.com/en-us/help/contribute/samples/process/onboarding?branch=main#supported-metadata-fields-for-readmemd -->
 
-# Microservice communication using pubsub (async) and websockets
+# Microservice communication using pubsub (async) and AMQP (IoT Hub)
 
 ![](images/pubsub-diagram.png)
 
 In this quickstart, you'll create a subscriber microservice to demonstrate how Dapr enables a publish-subcribe pattern. The publisher will be a console app (`console scheduler`) that schedules a job on a specific topic, while subscriber (`job solver`) will listen for messages of specific topics and execute the job. See [Why Pub-Sub](#why-pub-sub) to understand when this pattern might be a good choice for your software architecture.
 
-The key thing about this sample is that console scheduler app communicates with job solver using websockets. Scheduler app has the ability to "cancel" the job and the solver is sending updates on the job progress.
+The key thing about this sample is that both apps console scheduler app are registered as IoT devices and send telemetry to the hub (IoT Manager). Manager app is responsible for routing events back to devices. 
+
+All `scheduler` telemetry (device-to-cloud) is transformed to cloud-to-device messages and send back to `solver`.
+
+This is not a most common use of IoT hub, but it demostrates the messaging capabilites.
 
 ## Dapr
 
@@ -39,14 +43,14 @@ And one subscriber:
  
 - Dotnet job-solver `job-solver`
 
-There's also Azure Web Pub Sub server app - `wps-server`, it handles events from Azure Web Sub and included `/negotiate` API that allows clients to connect to web pub sub resource using web sockets.
+There's also Azure IoT Hub server app - `iot-manager`, it handles events from IoT Hub and includes `/negotiate` API endpoint that registeres IoT Devices and returns connection string for them.
 
 ### Pre-requisites
 
 For this example, you will need:
 
 - [Dapr CLI](https://docs.dapr.io/getting-started)
-- [.NET 6 SDK](https://dotnet.microsoft.com/download)
+- [.NET 8 SDK](https://dotnet.microsoft.com/download)
 <!-- IGNORE_LINKS -->
 - [Docker Desktop](https://www.docker.com/products/docker-desktop)
 <!-- END_IGNORE -->
@@ -60,7 +64,7 @@ NOTE: make sure you have Azure Dev CLI pre-reqs [here](https://learn.microsoft.c
 5. Run the following command to initialize the project. 
 
 ```bash
-azd init --template https://github.com/karpikpl/azure-web-pub-sub-sample
+azd init --template https://github.com/karpikpl/azure-iot-hub-sample
 ``` 
 
 This command will clone the code to your current folder and prompt you for the following information:
@@ -86,5 +90,13 @@ Once the infrastructure is deployed, `appsettings.local.json` files will be crea
 To schedule a job, run `dotnet run` from `console-scheduler` directory.
 
 There are two other test project that just verify azure web pub sub is working:
-- `console-publisher` - sends message to all subscribers.
-- `console-subscriber` - subscribe to message from web pub sub.
+- `console-cloud` - sample demonstrating the use of IoT hub cloud SDK.
+- `console-device` - sample simulating an IoT device.
+
+## Other Considerations
+
+Sample could be extended to use other features of Iot Hub, including:
+
+* [Jobs](https://learn.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-jobs)
+* [Cloud to device commands](https://learn.microsoft.com/en-us/rest/api/iotcentral/dataplane/devices/run-command?view=rest-iotcentral-dataplane-2022-07-31&tabs=HTTP)
+* [Messaging Considertions](https://learn.microsoft.com/en-us/azure/iot-hub/iot-hub-devguide-messaging)

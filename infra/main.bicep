@@ -45,6 +45,7 @@ var tags = { 'azd-env-name': environmentName, 'role-assignments-set': '${doRoleA
 
 // IOT Hub Name Resource
 var iotHubName = '${abbrs.devicesIotHubs}${resourceToken}'
+var iotHubHostName = '${abbrs.devicesIotHubs}${resourceToken}.azure-devices.net'
 
 // Organize resources in a resource group
 resource rg 'Microsoft.Resources/resourceGroups@2021-04-01' = {
@@ -144,10 +145,13 @@ module AccessForUser './app/accessForUser.bicep' = if (doRoleAssignments) {
     userObjectId: principalId
     iotHubName: iotHubName
   }
+  dependsOn: [
+    iothub
+  ]
 }
 
 module iotManagerApp './app/iotmanager.bicep' = {
-  name: 'wps-server'
+  name: 'iot-manager'
   scope: rg
   params: {
     name: !empty(iotManagerContainerAppName) ? iotManagerContainerAppName : '${abbrs.appContainerApps}${iotManagerServiceName}-${resourceToken}'
@@ -157,7 +161,7 @@ module iotManagerApp './app/iotmanager.bicep' = {
     serviceName: iotManagerServiceName
     managedIdentityName: serviceBusAccess.outputs.managedIdentityName
     exists: iotManagerAppExists
-    iothubName: iotHubName
+    iothubHostName: iotHubHostName
     deviceMessagesQueueName: serviceBusResources.outputs.queueName
     serviceBusNamespace: '${serviceBusResources.outputs.serviceBusName}.servicebus.windows.net'
     appInsightsConnectionString: monitoring.outputs.applicationInsightsConnectionString

@@ -1,17 +1,17 @@
 // using https://learn.microsoft.com/en-us/aspnet/core/fundamentals/host/hosted-services?view=aspnetcore-7.0&tabs=visual-studio
 
-using System.Text.Json;
 using Azure.Messaging.ServiceBus;
-using Azure.Messaging.WebPubSub;
+using Microsoft.Azure.Devices;
+using Microsoft.Azure.Devices.Common.Exceptions;
 
 namespace iotManager.OtherServices;
 
 public class ServiceBusHostedService : BackgroundService
 {
-    private readonly WebPubSubServiceClient _webPubSubServiceClient;
+    private readonly ServiceClient _iotHubServiceClient;
     private readonly ServiceBusClient _serviceBusClient;
     private readonly ILogger<ServiceBusHostedService> _logger;
-    private const string queueName = "notifications";
+    private const string queueName = "device-messages";
 
     private readonly ServiceBusProcessorOptions _options = new()
     {
@@ -24,9 +24,9 @@ public class ServiceBusHostedService : BackgroundService
         MaxConcurrentCalls = 1
     };
 
-    public ServiceBusHostedService(WebPubSubServiceClient webPubSubServiceClient, ServiceBusClient serviceBusClient, ILogger<ServiceBusHostedService> logger)
+    public ServiceBusHostedService(ServiceClient iotHubServiceClient, ServiceBusClient serviceBusClient, ILogger<ServiceBusHostedService> logger)
     {
-        _webPubSubServiceClient = webPubSubServiceClient;
+        _iotHubServiceClient = iotHubServiceClient;
         _serviceBusClient = serviceBusClient;
         _logger = logger;
     }
@@ -44,20 +44,36 @@ public class ServiceBusHostedService : BackgroundService
 
             var message = args.Message;
             var body = message.Body.ToString();
-            //var notification = JsonSerializer.Deserialize<Notification>(body);
+            var fromDeviceId = message.ApplicationProperties["iothub-connection-device-id"]?.ToString();
 
-            await args.CompleteMessageAsync(message);
-
-            var notification = new 
+            if (fromDeviceId == null || !fromDeviceId.Contains("::"))
             {
-                Id = message.MessageId,
-                When = args.Message.EnqueuedTime,
-                MessageType = string.IsNullOrWhiteSpace(args.Message.Subject) ? "Notification" : args.Message.Subject,
-                Data = body
-            };
-            _logger.LogInformation("Sending notification to subscribers");
+                _logger.LogWarning("Device id not found in message properties");
+                await args.DeadLetterMessageAsync(message, deadLetterReason: "DeviceIdNotFound", deadLetterErrorDescription: "Device id not found in message properties");
+                return;
+            }
 
-            await _webPubSubServiceClient.SendToAllAsync(JsonSerializer.Serialize(notification), Azure.Core.ContentType.ApplicationJson);
+            var messageToDeviceId = fromDeviceId.StartsWith("device-solver::")
+                ? fromDeviceId.Replace("device-solver::", "device-scheduler::")
+                : fromDeviceId.Replace("device-scheduler::", "device-solver::");
+
+            try
+            {
+                _logger.LogInformation("Sending message from {deviceId} to device: {toDeviceId}", fromDeviceId, messageToDeviceId);
+                await SendCloudToDeviceMessageAsync(messageToDeviceId, fromDeviceId, message.Body.ToStream());
+            }
+            catch (DeviceNotFoundException deviceNotFoundEx)
+            {
+                _logger.LogWarning(deviceNotFoundEx, "Device {deviceId} does not exist", messageToDeviceId);
+                await args.DeadLetterMessageAsync(message, deadLetterReason: "DeviceNotFound", deadLetterErrorDescription: "Device " + messageToDeviceId + "does not exist");
+                return;
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Failed to send message to device: {deviceId}", fromDeviceId);
+                await args.DeadLetterMessageAsync(message, deadLetterReason: "DeviceMessageFailed", deadLetterErrorDescription: ex.Message);
+                return;
+            }
         };
 
         processor.ProcessErrorAsync += async args =>
@@ -73,7 +89,7 @@ public class ServiceBusHostedService : BackgroundService
                 Data = args.Exception.Message
             };
 
-            await _webPubSubServiceClient.SendToAllAsync(JsonSerializer.Serialize(errorNotification), Azure.Core.ContentType.ApplicationJson);
+            await Task.CompletedTask;
         };
 
         await processor.StartProcessingAsync(stoppingToken);
@@ -99,5 +115,17 @@ public class ServiceBusHostedService : BackgroundService
     {
         _logger.LogInformation("Starting notifications loop");
         return base.StartAsync(cancellationToken);
+    }
+
+    private async Task SendCloudToDeviceMessageAsync(string deviceId, string fromDeviceId, Stream message)
+    {
+        var commandMessage = new Message(message)
+        {
+            Ack = DeliveryAcknowledgement.Full,
+            Properties = { ["from-device"] = fromDeviceId }
+        };
+
+        await _iotHubServiceClient.SendAsync(deviceId, commandMessage);
+        _logger.LogInformation("Sent message to device: {deviceId}", deviceId);
     }
 }

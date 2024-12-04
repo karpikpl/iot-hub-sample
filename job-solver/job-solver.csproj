@@ -11,7 +11,7 @@
   <ItemGroup>
     <PackageReference Include="Swashbuckle.AspNetCore" Version="6.2.3" />
     <PackageReference Include="Dapr.AspNetCore" Version="1.8.0" />
-    <PackageReference Include="Azure.Messaging.WebPubSub.Client" Version="1.0.0" />
+    <PackageReference Include="Microsoft.Azure.Devices.Client" Version="1.42.3" />
   </ItemGroup>
 
 </Project>

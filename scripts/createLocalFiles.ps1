@@ -18,15 +18,13 @@ $json_content = @{
         Namespace = "$($envDict['SERVICEBUS_NAME']).servicebus.windows.net"
         TopicName = $envDict['SERVICEBUS_TOPIC_NAME']
     }
-    WebPubSub = @{
-        Name = $envDict['AZURE_WEBPUBSUB_NAME']
-        Hostname = $envDict['AZURE_WEBPUBSUB_HOSTNAME']
-        HubName = $envDict['AZURE_WEBPUBSUB_HUB_NAME']
-        ServerUrl = $envDict['SERVICE_IOT_MANAGER_URI']
+    IoT = @{
+        HubHostName = $envDict['AZURE_IOTHUB_HOSTNAME']
+        ManagerUrl = $envDict['SERVICE_IOT_MANAGER_URI']
     }
     ApiKey = $envDict['API_KEY']
 } | ConvertTo-Json -Depth 5
 
-$json_content | Set-Content './console-subscriber/appsettings.local.json'
+$json_content | Set-Content './console-cloud/appsettings.local.json'
 $json_content | Set-Content './console-scheduler/appsettings.local.json'
-$json_content | Set-Content './console-publisher/appsettings.local.json'
+$json_content | Set-Content './console-device/appsettings.local.json'

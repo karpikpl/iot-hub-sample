@@ -2,9 +2,9 @@
 using System.Net.Http.Json;
 using Azure.Identity;
 using Azure.Messaging.ServiceBus;
-using Azure.Messaging.WebPubSub.Clients;
-using Microsoft.Identity.Client;
 using Microsoft.Extensions.Configuration;
+using Microsoft.Azure.Devices.Client;
+using System.Text.Json;
 
 var isDoneEvent = new ManualResetEventSlim(false);
 
@@ -20,47 +20,45 @@ var configuration = builder.Build();
 // Replace with your Service Bus namespace and queue or topic name
 string fullyQualifiedNamespace = configuration["ServiceBus:Namespace"] ?? throw new ArgumentNullException("ServiceBus:Namespace");
 string queueOrTopicName = configuration["ServiceBus:TopicName"] ?? throw new ArgumentNullException("ServiceBus:TopicName");
-string iotManagerUrl = configuration["WebPubSub:ServerUrl"] ?? throw new ArgumentNullException("WebPubSub:ServerUrl");
+string iotManagerUrl = configuration["IoT:ManagerUrl"] ?? throw new ArgumentNullException("IoT:ManagerUrl");
 string apiKey = configuration["ApiKey"] ?? throw new ArgumentNullException("ApiKey");
 
 string jobId = $"job-{Environment.UserName}-{DateTime.UtcNow.ToString("yyyy-MM-dd-HH-mm-ss", CultureInfo.InvariantCulture)}";
-string userid = $"scheduler-{jobId}";
+string deviceId = $"device-scheduler::{jobId}";
+string solverId = $"device-solver::{jobId}";
 
-Uri webPubSubServerUri = new Uri($"{iotManagerUrl}/negotiate/{userid}/{jobId}");
+Uri iotNegotiateUri = new Uri($"{iotManagerUrl}/negotiate/{deviceId}");
+Uri iotNegotiateSolverUri = new Uri($"{iotManagerUrl}/negotiate/{solverId}");
 
-// get connection string for WebPubSub
+// get connection string for IoT Hub
 using HttpClient httpClient = new HttpClient();
 httpClient.DefaultRequestHeaders.Add("x-api-key", apiKey);
-var response = await httpClient.GetFromJsonAsync<NegotiateResponse>(webPubSubServerUri);
+var response = await httpClient.GetFromJsonAsync<NegotiateResponse>(iotNegotiateUri);
+
+// register solver too
+await httpClient.GetFromJsonAsync<NegotiateResponse>(iotNegotiateSolverUri);
 
 // Create a ServiceBusClient using DefaultAzureCredential
 var client = new ServiceBusClient(fullyQualifiedNamespace, new DefaultAzureCredential());
 
-// Create a WebPubSub client
-var webPubSubClient = new WebPubSubClient(new Uri(response!.Url));
-await webPubSubClient.StartAsync();
-Console.WriteLine($"WebPubSub client started for job {jobId} 🔥");
+// Create a IoT device client
+using var deviceClient = DeviceClient.CreateFromConnectionString(response!.Url, TransportType.Amqp);
+await deviceClient.OpenAsync();
+Console.WriteLine($"Device {deviceId} connected 🔥.");
 
-webPubSubClient.GroupMessageReceived+= (args) =>
+await deviceClient.SetReceiveMessageHandlerAsync(async (message, _) =>
 {
-    if(args.Message.DataType == WebPubSubDataType.Json)
+    var jobUpdate = await JsonSerializer.DeserializeAsync<JobUpdate>(message.GetBodyStream())
+        ?? throw new InvalidOperationException("Failed to deserialize JobUpdate message.");
+
+    Console.WriteLine($"Server message received {message.MessageId}: {jobUpdate.Name} - {jobUpdate.Step} - {jobUpdate.Status}");
+
+    if (jobUpdate.Step == "Done" && jobUpdate.Status == "Completed")
     {
-        var jobUpdate = args.Message.Data.ToObjectFromJson<JobUpdate>()
-            ?? throw new InvalidOperationException("Failed to deserialize JobUpdate message.");
-
-        Console.WriteLine($"Message received in group {args.Message.Group}: {jobUpdate.Name} - {jobUpdate.Step} - {jobUpdate.Status}");
-
-        if(jobUpdate.Step == "Done" && jobUpdate.Status == "Completed")
-        {
-            isDoneEvent.Set();
-            Console.WriteLine("Job is done. 🔥🔥🔥");
-        }
+        isDoneEvent.Set();
+        Console.WriteLine("Job is done. 🔥🔥🔥");
     }
-    else
-    Console.WriteLine($"Uknown Message received in group {args.Message.Group}: {args.Message.Data.ToString()}");
-
-    return Task.CompletedTask;
-};
+}, null);
 
 // Create a sender for the queue or topic
 ServiceBusSender sender = client.CreateSender(queueOrTopicName);
@@ -72,26 +70,45 @@ ServiceBusMessage message = new ServiceBusMessage(BinaryData.FromObjectAsJson(jo
 // Send the message
 await sender.SendMessageAsync(message);
 
-// Send the event to WebPubSub
-var submittedResponse = await webPubSubClient.SendEventAsync("asp_job_submitted", BinaryData.FromObjectAsJson(job), WebPubSubDataType.Json, fireAndForget: true);
+// Send the event to IoT Hub
+await deviceClient.SendEventAsync(new Message(BinaryData.FromObjectAsJson(job).ToStream()));
 
 Console.WriteLine("Message sent.");
 
-Console.CancelKeyPress += async (sender, e) => {
+Console.CancelKeyPress += async (sender, e) =>
+{
     e.Cancel = true; // Prevent the process from terminating immediately
     Console.WriteLine("Are you sure you want to cancel? (y/n)");
     var response = Console.ReadKey(intercept: true).Key;
-    if (response == ConsoleKey.Y) {
+    if (response == ConsoleKey.Y)
+    {
         // letting the solver know that the job has been cancelled
-        await webPubSubClient.SendToGroupAsync(jobId, BinaryData.FromObjectAsJson(new JobUpdate(job.Name, job.CorrelationId, "Cancelled", "Cancelled")), WebPubSubDataType.Json);
+        await deviceClient.SendEventAsync(new Message(BinaryData.FromObjectAsJson(new JobUpdate(job.Name, job.CorrelationId, "Cancelled", "Cancelled")).ToStream()));
         Console.WriteLine("Cancellation requested for the job.");
         isDoneEvent.Set();
-    } else {
+    }
+    else
+    {
         Console.WriteLine("Continuing execution.");
     }
 };
 
 await Task.Run(() => isDoneEvent.Wait());
+
+// clean up
+await deviceClient.DisposeAsync();
+await client.DisposeAsync();
+
+Console.WriteLine("Cleaning up 🧼🧼🧼...");
+var deregisterResponse = await httpClient.GetAsync($"{iotManagerUrl}/deregister/{deviceId}");
+var deregister2Response = await httpClient.GetAsync($"{iotManagerUrl}/deregister/{solverId}");
+
+Console.WriteLine($"Deregistered scheduler: {deregisterResponse.StatusCode} 👋");
+Console.WriteLine($"Deregistered solver: {deregister2Response.StatusCode} 👋");
+
+Console.WriteLine("Job is done. 👋👋👋");
+
+return 0;
 
 record Job(string Name, string CorrelationId, string[] Steps);
 record JobUpdate(string Name, string CorrelationId, string Step, string Status);

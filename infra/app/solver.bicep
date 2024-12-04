@@ -35,7 +35,7 @@ module solver '../core/host/container-app-upsert.bicep' = {
     identityName: managedIdentityName
     env: [
       {
-        name: 'WEBPUBSUB_SERVER_URL'
+        name: 'IOT_MANAGER_URL'
         value: iotManagerUrl
       }
       {

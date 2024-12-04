@@ -72,6 +72,13 @@ resource iotHub 'Microsoft.Devices/IotHubs@2023-06-30' = {
           name: 'device-messages-to-service-bus'
           source: 'DeviceMessages'
         }
+        {
+          endpointNames: ['events']
+          condition: 'true'
+          isEnabled: true
+          name: 'device-messages-to-builtin-events-endpoint'
+          source: 'DeviceMessages'
+        }
       ]
       fallbackRoute: {
         name: '$fallback'
@@ -108,4 +115,4 @@ output resourceId string = iotHub.id
 output resourceGroupName string = resourceGroup().name
 output location string = location
 output hostname string = iotHub.properties.hostName
-output eventHubEndpoint string = iotHub.properties.eventHubEndpoints['events'].endpoint
+output eventHubEndpoint string = iotHub.properties.eventHubEndpoints.events.endpoint

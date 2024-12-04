@@ -13,15 +13,13 @@ json_content='{
         "Namespace": "'"$SERVICEBUS_NAME".servicebus.windows.net'",
         "TopicName": "'"$SERVICEBUS_TOPIC_NAME"'"
     },
-    "WebPubSub": {
-        "Name": "'"$AZURE_WEBPUBSUB_NAME"'",
-        "Hostname": "'"$AZURE_WEBPUBSUB_HOSTNAME"'",
-        "HubName": "'"$AZURE_WEBPUBSUB_HUB_NAME"'",
-        "ServerUrl": "'"$SERVICE_IOT_MANAGER_URI"'
+    "IoT": {
+        "HubHostName": "'"$AZURE_IOTHUB_HOSTNAME"'",
+        "ManagerUrl": "'"$SERVICE_IOT_MANAGER_URI"'"
     },
     "ApiKey": "'"$API_KEY"'"
 }'
 
 echo "$json_content" > ./console-subscriber/appsettings.local.json
 echo "$json_content" > ./console-scheduler/appsettings.local.json
-echo "$json_content" > ./console-publisher/appsettings.local.json
+echo "$json_content" > ./console-device/appsettings.local.json

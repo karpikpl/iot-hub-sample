@@ -13,7 +13,7 @@ namespace console_device
     /// 2. Retrieves an IoT Hub connection string from a remote service using an API key.
     /// 3. Connects to the IoT Hub using the retrieved connection string.
     /// 4. Sets up handlers for direct methods and cloud-to-device messages.
-    /// 5. Sends simulated telemetry data (temperature and humidity) to the IoT Hub at regular intervals.
+    /// 5. Sends simulated telemetry data (provided by the user using terminal) to the IoT Hub at regular intervals.
     /// 6. Allows the user to exit the program gracefully using a control-C command.
     /// 
     /// Original sample: https://github.com/Azure/azure-iot-sdk-csharp/blob/main/iothub/device/samples/getting%20started/SimulatedDevice/Program.cs
@@ -22,8 +22,50 @@ namespace console_device
     {
         private static TimeSpan s_telemetryInterval = TimeSpan.FromSeconds(20);
 
+        private static async Task<string?> ReadLineAsync(CancellationToken ct)
+        {
+            try
+            {
+                var tcs = new TaskCompletionSource<string?>();
+
+                using (ct.Register(() => tcs.TrySetCanceled(), useSynchronizationContext: false))
+                {
+                    var inputTask = Task.Run(() => Console.ReadLine());
+                    var completedTask = await Task.WhenAny(inputTask, tcs.Task);
+
+                    if (completedTask == tcs.Task)
+                    {
+                        throw new OperationCanceledException(ct);
+                    }
+
+                    return await inputTask;
+                }
+            }
+            catch (OperationCanceledException)
+            {
+                return null;
+            }
+        }
+
         static async Task Main(string[] args)
         {
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine("Azure IoT Hub Device Simulator");
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine();
+            Console.WriteLine("Startup instructions:");
+            Console.WriteLine("  - Ensure you have the necessary configuration files (appsettings.json, appsettings.local.json) with the required settings.");
+            Console.WriteLine("  - You can override the DeviceId by passing them as command line arguments:");
+            Console.WriteLine("      dotnet run -- DeviceId=<your_device_id>");
+            Console.WriteLine("  - Alternatively, set the environment variable DeviceId'.");
+            Console.WriteLine("To send a message to another device start one device with a name DeviceId=device-scheduler::foo and another one with DeviceId=device-solver::foo.");
+            Console.WriteLine();
+            Console.WriteLine("Usage instructions:");
+            Console.WriteLine("  - Enter a message and press Enter to send it to the IoT Hub.");
+            Console.WriteLine("  - To exit, press Enter without typing any message.");
+            Console.WriteLine("----------------------------------------");
+            Console.WriteLine();
+
             ConfigurationBuilder builder = new ConfigurationBuilder();
             builder.AddJsonFile("appsettings.json", optional: true, reloadOnChange: true);
             builder.AddJsonFile("appsettings.Development.json", optional: true, reloadOnChange: true);
@@ -37,7 +79,7 @@ namespace console_device
 
             // using this device ID will cause the server to send messages back to this device
             string jobId = "console-test";
-            string deviceId = $"console-device::{jobId}";
+            string deviceId = configuration["DeviceId"] ?? $"console-device::{jobId}";
 
             // get connection string for IoT Hub
             using HttpClient httpClient = new HttpClient();
@@ -48,10 +90,10 @@ namespace console_device
 
             using var deviceClient = DeviceClient.CreateFromConnectionString(connectionString, TransportType.Amqp);
             await deviceClient.OpenAsync();
-            Console.WriteLine("Device connected.");
+            Console.WriteLine($"Device '{deviceId}' connected.");
 
             // Set up a condition to quit the sample
-            Console.WriteLine("Press control-C to exit.");
+            Console.WriteLine("Press control-C or [enter] to exit.");
             using var cts = new CancellationTokenSource();
             Console.CancelKeyPress += (sender, eventArgs) =>
             {
@@ -61,9 +103,11 @@ namespace console_device
             };
 
             await deviceClient.SetMethodDefaultHandlerAsync(DirectMethodCallback, null, cts.Token);
-            await deviceClient.SetReceiveMessageHandlerAsync((message, _) =>
+            await deviceClient.SetReceiveMessageHandlerAsync((message, userCtx) =>
             {
-                Console.WriteLine($"Received message: {Encoding.UTF8.GetString(message.GetBytes())}");
+                var properties = string.Join("; ", message.Properties.Select(p => $"{p.Key}={p.Value}").ToList());
+                Console.WriteLine($"Received message from {message.ConnectionDeviceId} : {Encoding.UTF8.GetString(message.GetBytes())}\n\tProperties: {properties}");
+                deviceClient.CompleteAsync(message);
                 return Task.CompletedTask;
             }, null);
 
@@ -108,24 +152,22 @@ namespace console_device
         // Async method to send simulated telemetry
         private static async Task SendDeviceToCloudMessagesAsync(DeviceClient deviceClient, CancellationToken ct)
         {
-            // Initial telemetry values
-            double minTemperature = 20;
-            double minHumidity = 60;
-            var rand = new Random();
-
             try
             {
                 while (!ct.IsCancellationRequested)
                 {
-                    double currentTemperature = minTemperature + rand.NextDouble() * 15;
-                    double currentHumidity = minHumidity + rand.NextDouble() * 20;
+                    var messageText = await ReadLineAsync(ct);
+
+                    if (string.IsNullOrEmpty(messageText))
+                    {
+                        break;
+                    }
 
                     // Create JSON message
                     string messageBody = JsonSerializer.Serialize(
                         new
                         {
-                            temperature = currentTemperature,
-                            humidity = currentHumidity,
+                            messageText
                         });
                     using var message = new Message(Encoding.ASCII.GetBytes(messageBody))
                     {
@@ -135,13 +177,11 @@ namespace console_device
 
                     // Add a custom application property to the message.
                     // An IoT hub can filter on these properties without access to the message body.
-                    message.Properties.Add("temperatureAlert", (currentTemperature > 30) ? "true" : "false");
+                    message.Properties.Add("currentInterval_in_s", s_telemetryInterval.Seconds.ToString());
 
                     // Send the telemetry message
                     await deviceClient.SendEventAsync(message, ct);
                     Console.WriteLine($"{DateTime.Now} > Sending message: {messageBody}");
-
-                    await Task.Delay(s_telemetryInterval, ct);
                 }
             }
             catch (TaskCanceledException) { } // ct was signaled

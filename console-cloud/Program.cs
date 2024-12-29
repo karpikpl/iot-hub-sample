@@ -37,8 +37,8 @@ namespace console_cloud
             builder.AddCommandLine(args);
 
             var configuration = builder.Build();
-            var iotHubHostName = configuration["Iot:HubHostName"] ?? throw new ArgumentNullException("Iot:HubHostName");
-            var iotEndpoint = configuration["Iot:Endpoint"] ?? throw new ArgumentNullException("Iot:Endpoint");
+            var iotHubHostName = configuration["Iot:HubHostName"] ?? throw new InvalidOperationException("Iot:HubHostName is missing in configuration");
+            var iotEndpoint = configuration["Iot:Endpoint"] ?? throw new InvalidOperationException("Iot:Endpoint is missing. See: https://github.com/Azure/azure-iot-sdk-csharp/blob/main/iothub/service/samples/getting%20started/ReadD2cMessages/README.md how to get it.");
 
             var credential = new DefaultAzureCredential(includeInteractiveCredentials: true);
             var serviceClient = ServiceClient.Create(iotHubHostName, credential);
